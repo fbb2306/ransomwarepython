@@ -1,0 +1,43 @@
+import os
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+def gerar_chave(senha):
+    senha = senha.encode()
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    chave = base64.b64encode(kdf.derive(senha))
+    return chave, salt
+
+def criptografar_arquivo(caminho_arquivo, chave):
+    f = Fernet(chave)
+    with open(caminho_arquivo, "rb") as arquivo:
+        dados_arquivo = arquivo.read()
+    dados_criptografados = f.encrypt(dados_arquivo)
+    with open(caminho_arquivo, "wb") as arquivo:
+        arquivo.write(dados_criptografados)
+
+def main():
+    senha = input("senha para criptografar os arquivos: ")
+    chave, salt = gerar_chave(senha)
+
+    diretorio_alvo = input("diretório a ser criptografado: ")
+
+    for pasta, subpastas, arquivos in os.walk(diretorio_alvo):
+        for arquivo in arquivos:
+            caminho_arquivo = os.path.join(pasta, arquivo)
+            criptografar_arquivo(caminho_arquivo, chave)
+
+    print("Arquivos criptografados com sucesso!")
+
+if __name__ == "__main__":
+    main()
+
